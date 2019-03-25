@@ -1,5 +1,5 @@
 # Tweet Archiving Tool
-# Usage: python dl_tw.py {USERNAME1} {USERNAME2} ...
+# Usage: python dl_twitter.py {USERNAME1} {USERNAME2} ...
 # 
 # Archives an entire user's Twitter profile. It gets:
 # - the text of the tweet

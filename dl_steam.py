@@ -1,5 +1,5 @@
 # Steam Community Archiving Tool
-# Usage: python dl_comm {APP_ID1} {APP_ID2} ...
+# Usage: python dl_steam.py {APP_ID1} {APP_ID2} ...
 #
 # Archives various aspects of Steam Community for particular games/pages. It gets:
 #  - Screenshots (and snippets of HTML describing them)

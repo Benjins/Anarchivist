@@ -6,6 +6,7 @@ A set of Python scripts meant to help people ensure that they have backups of th
 
  - `dl_twitter.py` - Twitter profiles by username
  - `dl_steam.py` - Steam community by game/app ID
+ - `dl_twitch_vod_chat.py` - The chat for Twitch VODs
 
 and possibly more in the future. In general, the scripts focus on getting the raw information in whatever format it's served in: usually bits of HTML. Getting them in a nicer format can come at a later date.
 
