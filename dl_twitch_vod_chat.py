@@ -101,8 +101,6 @@ def DownloadChatForVOD(vodID):
         url = '/v5/videos/%s/comments?content_offset_seconds=%d' % (vodID, offsetSec)
         data = DownloadURL(url, headers=headers)
         
-        db.execute('BEGIN TRANSACTION;')
-        
         if data is None:
             break
         else:
@@ -113,6 +111,7 @@ def DownloadChatForVOD(vodID):
                 
             print('   got %d comments' % len(info['comments']))
             
+            db.execute('BEGIN TRANSACTION;')
             highestOffset = offsetSec + 1
             for comment in info['comments']:
                 offset = int(comment['content_offset_seconds'])
@@ -124,8 +123,8 @@ def DownloadChatForVOD(vodID):
                     
             offsetSec = highestOffset
         
-        db.execute('COMMIT;')
-        db.commit()
+            db.execute('COMMIT;')
+            db.commit()
         
 if len(sys.argv) < 2:
     print('Please specify at least one VOD id')
