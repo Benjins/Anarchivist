@@ -194,6 +194,15 @@ def DownloadMediaForTweet(db, username, tweetInfo):
                 altText = media['ext_alt_text']
                 imgURL = media['media_url_https']
                 imgURL = imgURL[len('https://pbs.twimg.com'):]
+
+                # Convert it to a full-resolution URL
+                # If there are already URL params, tack one on at the end,
+                # Otherwise add it as a query string
+                if '?' in imgURL:
+                    imgURL += '&name=orig'
+                else:
+                    imgURL += '?name=orig'
+
                 filename = './%s/Images/%s_%d.jpg' % (username, tweetID, index)
                 
                 if os.path.exists(filename):
