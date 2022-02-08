@@ -243,7 +243,7 @@ def DownloadMediaForTweet(db, username, tweetInfo):
                 db.execute('INSERT OR IGNORE INTO TweetVideos(tweetID, url, mediaIndex, user, altText) VALUES(?,?,?,?,?)', (tweetID, mediaURL, index, username, altText))
             else:
                 raise RuntimeError('Weird type: "%s" on tweet "%s"' % (media['type'], tweetID))
-        except KeyboardException:
+        except KeyboardInterrupt:
             raise
         except RuntimeError:
             raise
@@ -284,8 +284,8 @@ def GetTweetIDsForUser_V2(db, username):
         'skip_status': '1',
         'cards_platform': 'Web-12',
         'include_cards': '1',
-        'include_composer_source': 'true',
         'include_ext_alt_text': 'true',
+        'include_quote_count': 'true',
         'include_reply_count': '1',
         'tweet_mode': 'extended',
         'include_entities': 'true',
@@ -298,12 +298,18 @@ def GetTweetIDsForUser_V2(db, username):
         'tweet_search_mode': 'live',
         'count': '100',
         'query_source': 'spelling_expansion_revert_click',
-        'pc':1,
-        'spelling_corrections':1,
-        'ext':'mediaStats%2CcameraMoment'
+        'cursor': None,
+        'pc': '1',
+        'spelling_corrections': '1',
+        'ext': 'mediaStats,highlightedLabel',
     }
     
     TWITTER_VERSION = 2
+    
+    NUM_RETRIES_EMPTY_RESULTS = 20
+    
+    currentEmptyRetryCounter = 0
+    
     
     cursor = None
     
@@ -343,15 +349,20 @@ def GetTweetIDsForUser_V2(db, username):
                     continue
                 for entry in entries:
                     if entry['entryId'].startswith('sq-I-t-'):
-                        tweet = info['globalObjects']['tweets'][entry['content']['item']['content']['tweet']['id']]
-                        tweetID = tweet['id_str']
-                        content = tweet['full_text']
-                        isNew = db.execute('INSERT OR IGNORE INTO TweetData VALUES(?,?,?,?,?,?)', (tweetID, username, content, tweet['created_at'], tweet['in_reply_to_status_id_str'], TWITTER_VERSION)).rowcount
-                        count += 1
-                        
-                        if isNew:
-                            newCount += 1
-                            DownloadMediaForTweet(db, username, tweet)
+                        try:
+                            tweet = info['globalObjects']['tweets'][entry['content']['item']['content']['tweet']['id']]
+                            tweetID = tweet['id_str']
+                            content = tweet['full_text']
+                            isNew = db.execute('INSERT OR IGNORE INTO TweetData VALUES(?,?,?,?,?,?)', (tweetID, username, content, tweet['created_at'], tweet['in_reply_to_status_id_str'], TWITTER_VERSION)).rowcount
+                            count += 1
+                            
+                            if isNew:
+                                newCount += 1
+                                DownloadMediaForTweet(db, username, tweet)
+                        except KeyboardInterrupt:
+                            raise
+                        except:
+                            pass
                         
                     elif entry['entryId'] == 'sq-cursor-bottom':
                         newCursor = entry['content']['operation']['cursor']['value']
@@ -366,9 +377,22 @@ def GetTweetIDsForUser_V2(db, username):
             print('Added %d tweets (%d new)' % (count, newCount))
 
 
-        if not newCursor or newCursor == cursor or count == 0:
+        if not newCursor:
             # End of pagination
             break
+            
+        if newCursor == cursor or count == 0:
+            currentEmptyRetryCounter += 1
+            if currentEmptyRetryCounter > NUM_RETRIES_EMPTY_RESULTS:
+                print('We have failed to advance through the search even after %d retries on the same cursor. This is probably the end of the search' % currentEmptyRetryCounter)
+                break
+            else:
+                print('Results were empty, or cursor failed to make progress. Will retry shortly (%d/%d)' % (currentEmptyRetryCounter, NUM_RETRIES_EMPTY_RESULTS))
+                time.sleep(0.2)
+            
+        else:
+            currentEmptyRetryCounter = 0
+            
         cursor = newCursor
 
 
