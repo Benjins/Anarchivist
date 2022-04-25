@@ -353,7 +353,8 @@ def GetTweetIDsForUser_V2(db, username):
                             tweet = info['globalObjects']['tweets'][entry['content']['item']['content']['tweet']['id']]
                             tweetID = tweet['id_str']
                             content = tweet['full_text']
-                            isNew = db.execute('INSERT OR IGNORE INTO TweetData VALUES(?,?,?,?,?,?)', (tweetID, username, content, tweet['created_at'], tweet['in_reply_to_status_id_str'], TWITTER_VERSION)).rowcount
+                            full_tweet_json = json.dumps(tweet)
+                            isNew = db.execute('INSERT OR IGNORE INTO TweetData VALUES(?,?,?,?,?,?,?)', (tweetID, username, content, tweet['created_at'], tweet['in_reply_to_status_id_str'], full_tweet_json, TWITTER_VERSION)).rowcount
                             count += 1
                             
                             if isNew:
@@ -362,6 +363,8 @@ def GetTweetIDsForUser_V2(db, username):
                         except KeyboardInterrupt:
                             raise
                         except:
+                            print('Got exception in entry "%s", skipping to next' % entry['entryId'])
+                            traceback.print_exc()
                             pass
                         
                     elif entry['entryId'] == 'sq-cursor-bottom':
@@ -406,7 +409,7 @@ def SetupDatabaseAndStuffForUser(user):
 
     # Set up Tweet Database
     # TODO: Unique constraint on TweetImages/TweetVideo
-    db.execute('CREATE TABLE If NOT EXISTS TweetData(tweetID INTEGER PRIMARY KEY, username VARCHAR(255), data TEXT, timestamp VARCHAR(255), replyTo INTEGER, version INTEGER);')
+    db.execute('CREATE TABLE If NOT EXISTS TweetData(tweetID INTEGER PRIMARY KEY, username VARCHAR(255), data TEXT, timestamp VARCHAR(255), replyTo INTEGER, fullTweetJSON TEXT, version INTEGER);')
     db.execute('CREATE TABLE If NOT EXISTS TweetImages(id INTEGER PRIMARY KEY AUTOINCREMENT, tweetID INTEGER, url VARCHAR(255), mediaIndex INTEGER, user VARCHAR(255), altText TEXT);')
     db.execute('CREATE TABLE If NOT EXISTS TweetVideos(id INTEGER PRIMARY KEY AUTOINCREMENT, tweetID INTEGER, url VARCHAR(255), mediaIndex INTEGER, user VARCHAR(255), altText TEXT);')
     db.execute('CREATE INDEX If NOT EXISTS TweetIDIndex ON TweetData (tweetID);')
